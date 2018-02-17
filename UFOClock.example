@@ -1,0 +1,15 @@
+# UFOClock example config file. Copy this file to your home directory
+# and rename it '.UFOClock'.
+
+# Latitude in decimal format, no 'N' or 'S'
+latitude=34.0
+
+# Longitude in decimal format, no 'E' or 'W'
+longitude=-119.0
+
+# Height in meters
+height=42
+
+# Optional ZIP code, five digits only, only matters if latitude and
+# longitude are not defined above
+#zip=90210
