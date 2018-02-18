@@ -30,10 +30,12 @@
 #include "moondata.h"
 #include "zipdata.h"
 
-static body earth;
-static body sun;
-static body moon;
-static site_info geo_loc = {34.0, -119.0, 34, 0.0, 0.0};
+static const short int ACCY_REDUCED = 1;
+static cat_entry dummy_star;
+static object earth;
+static object sun;
+static object moon;
+static on_surface geo_loc = {34.0, -119.0, 34, 0.0, 0.0};
 
 static time_t sunrise, sunset, noon, midnight;
 static time_t twilight_morn, twilight_eve;
@@ -87,9 +89,9 @@ static double findnoonmid(float seek,double az[29],double appnoon) {
     bottom = appnoon + (i-15)/24.0;
     while ( top-bottom > 1/(24*60*30.0) ) {
 	mid = (top+bottom)/2;
-	topo_planet(mid, &sun, &earth, 0, &geo_loc,
+	topo_planet(mid, &sun, 0, &geo_loc, ACCY_REDUCED,
 		&right_ascension, &declination, &distance_to_earth);
-	equ2hor(mid, 0, 0,0, &geo_loc,
+	equ2hor(mid, 0, ACCY_REDUCED, 0, 0, &geo_loc,
 		right_ascension, declination, 1,
 		&zd, &azimuth, &rar, &decr);
 	if ( azimuth==seek )
@@ -134,9 +136,9 @@ static double findsunriseset(const int start, const double zd[29],
 	    double rar;
 	    double decr;
 	    double az;
-	    topo_planet(mid, &sun, &earth, 0, &geo_loc, &right_ascension,
+	    topo_planet(mid, &sun, 0, &geo_loc, ACCY_REDUCED, &right_ascension,
 		    &declination, &distance_to_earth);
-	    equ2hor(mid, 0, 0, 0, &geo_loc, right_ascension, declination, 1,
+	    equ2hor(mid, 0, ACCY_REDUCED, 0, 0, &geo_loc, right_ascension, declination, 1,
 		    &zenith, &az, &rar, &decr);
 	}
 	if (zenith == goal)
@@ -185,16 +187,20 @@ static void findtimes(time_t approximate_noon, time_t now) {
     int error;
     double dsunrise, dsunset, dnoon, dmidnight, dtwim, dtwie;
 
-    if (error = set_body (0,3,"Earth", &earth)) {
-	fprintf (stderr,"Error %d from set_body.\n", error);
+
+   make_cat_entry ("DUMMY","xxx",0,0.0,0.0,0.0,0.0,0.0,0.0, 
+      &dummy_star);
+
+   if (error = make_object (0,3,"Earth", &dummy_star, &earth)) {
+	fprintf (stderr,"Error %d from make_object.\n", error);
 	exit (1);
     }
-    if (error = set_body (0,10,"Sun", &sun)) {
-	fprintf (stderr,"Error %d from set_body.\n", error);
+    if (error = make_object (0,10,"Sun", &dummy_star, &sun)) {
+	fprintf (stderr,"Error %d from make_object.\n", error);
 	exit (1);
     }
-    if (error = set_body (0,11,"Moon", &moon)) {
-	fprintf (stderr,"Error %d from set_body.\n", error);
+    if (error = make_object (0,11,"Moon", &dummy_star, &moon)) {
+	fprintf (stderr,"Error %d from make_object.\n", error);
 	exit (1);
     }
 
@@ -202,11 +208,11 @@ static void findtimes(time_t approximate_noon, time_t now) {
     startjd = julian_date(tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour);
     for ( i= -14; i<=14; ++i ) {
 	tjd = julian_date(tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour+i);
-	topo_planet(tjd, &sun, &earth, 0, &geo_loc,
+	topo_planet(tjd, &sun, 0, &geo_loc, ACCY_REDUCED,
 		&right_ascension, &declination, &distance_to_earth);
 	/*if (i == 0)
 		printf("Right ascension %f\n", (float)right_ascension);*/
-	equ2hor(tjd, 0, 0,0, &geo_loc,
+	equ2hor(tjd, 0, ACCY_REDUCED, 0, 0, &geo_loc,
 		right_ascension, declination, 1,
 		&zd[i+14], &az[i+14], &rar, &decr);
     }
@@ -241,8 +247,11 @@ static void findtimes(time_t approximate_noon, time_t now) {
 	    tm->tm_hour + tm->tm_min/60.0 + tm->tm_sec/60.0/60.0);
     moonpos = moon_position(startjd);
     
-    topo_planet(startjd, &sun, &earth, 0, &geo_loc,
-            &right_ascension, &declination, &distance_to_earth);
+    error = topo_planet(startjd, &sun, 0, &geo_loc, ACCY_REDUCED,
+			&right_ascension, &declination, &distance_to_earth);
+    if (error)
+      fprintf(stderr, "topo_planet returned Error %d\n", error);
+
     yearpos = 90 - right_ascension*360/24;
 }
 
